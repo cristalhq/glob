@@ -4,7 +4,7 @@
 [![pkg-img]][pkg-url]
 [![version-img]][version-url]
 
-Glob pattern matching.
+Glob pattern matching in Go.
 
 ## Rationale
 
