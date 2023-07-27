@@ -19,7 +19,7 @@ func Example() {
 	}
 
 	pattern := `foo/**/*.go`
-	matcher := glob.MustCompile(pattern)
+	matcher := glob.MustCompile(pattern, '/')
 
 	fmt.Printf("For pattern `%s`:\n", pattern)
 	for _, path := range paths {

@@ -7,11 +7,6 @@ import (
 	"strings"
 )
 
-const (
-	sepChar = '/'
-	sepStr  = "/"
-)
-
 // Glob is the representation of a compiled glob pattern.
 // A Glob is safe for concurrent use by multiple goroutines.
 type Glob struct {
@@ -20,8 +15,8 @@ type Glob struct {
 
 // Compile parses a glob pattern and returns, if successful,
 // a Glob object that can be used to match against text.
-func Compile(pattern string) (*Glob, error) {
-	re, err := compile(pattern)
+func Compile(pattern string, sep byte) (*Glob, error) {
+	re, err := compile(pattern, sep)
 	if err != nil {
 		return nil, err
 	}
@@ -30,8 +25,8 @@ func Compile(pattern string) (*Glob, error) {
 
 // MustCompile is like Compile but panics if the expression cannot be parsed.
 // It simplifies safe initialization of global variables holding glob patterns.
-func MustCompile(pattern string) *Glob {
-	g, err := Compile(pattern)
+func MustCompile(pattern string, sep byte) *Glob {
+	g, err := Compile(pattern, sep)
 	if err != nil {
 		panic(err)
 	}
@@ -48,11 +43,12 @@ func (m *Glob) MatchBytes(b []byte) bool {
 	return m.re.Match(b)
 }
 
-func compile(pattern string) (*regexp.Regexp, error) {
+func compile(pattern string, separator byte) (*regexp.Regexp, error) {
+	sep := rune(separator)
 	root := ""
 	globmask := ""
 
-	for _, s := range strings.Split(pattern, sepStr) {
+	for _, s := range strings.Split(pattern, string(sep)) {
 		if root == "" && hasSpecial(s) {
 			root = globmask
 		}
@@ -64,25 +60,24 @@ func compile(pattern string) (*regexp.Regexp, error) {
 
 	cc := []rune(globmask)
 	dirmask := ""
-	filemask := ""
 	staticDir := true
+	var b strings.Builder
 
 	for i := 0; i < len(cc); i++ {
-		switch {
-		case cc[i] == '*':
+		switch c := cc[i]; c {
+		case '*':
 			staticDir = false
-			if i < len(cc)-2 && cc[i+1] == '*' && cc[i+2] == sepChar {
-				filemask += "(.*/)?"
+			if i < len(cc)-2 && cc[i+1] == '*' && cc[i+2] == sep {
+				b.WriteString("(.*/)?")
 				i += 2
 			} else {
-				filemask += "[^/]*"
+				b.WriteString("[^/]*")
 			}
 		default:
-			c := cc[i]
-			if c == sepChar || ('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || 255 < c {
-				filemask += string(c)
+			if c == sep || isASCII(c) {
+				b.WriteString(string(c))
 			} else {
-				filemask += fmt.Sprintf("[\\x%02X]", c)
+				b.WriteString(fmt.Sprintf("[\\x%02X]", c))
 			}
 			if staticDir {
 				dirmask += string(c)
@@ -90,7 +85,7 @@ func compile(pattern string) (*regexp.Regexp, error) {
 		}
 	}
 
-	re, err := regexp.Compile("^" + filemask + "$")
+	re, err := regexp.Compile("^" + b.String() + "$")
 	if err != nil {
 		return nil, err
 	}
@@ -100,4 +95,11 @@ func compile(pattern string) (*regexp.Regexp, error) {
 func hasSpecial(s string) bool {
 	return strings.IndexByte(s, '*') != -1 ||
 		strings.IndexByte(s, '{') != -1
+}
+
+func isASCII(c rune) bool {
+	return ('0' <= c && c <= '9') ||
+		('a' <= c && c <= 'z') ||
+		('A' <= c && c <= 'Z') ||
+		255 < c
 }

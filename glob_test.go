@@ -9,7 +9,7 @@ func BenchmarkCompile(b *testing.B) {
 	pattern := `foo/**/*.go`
 
 	for i := 0; i < b.N; i++ {
-		g, err := Compile(pattern)
+		g, err := Compile(pattern, '/')
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -21,7 +21,7 @@ func BenchmarkCompile(b *testing.B) {
 
 func BenchmarkMatch(b *testing.B) {
 	pattern := `foo/**/*.go`
-	g, err := Compile(pattern)
+	g, err := Compile(pattern, '/')
 	if err != nil {
 		b.Fatal(err)
 	}
