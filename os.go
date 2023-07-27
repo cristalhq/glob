@@ -22,14 +22,14 @@ func Walk(ctx context.Context, fsys fs.FS, root string, glob *Glob, fn fs.WalkDi
 func FindAll(ctx context.Context, fsys fs.FS, root string, glob *Glob) ([]string, error) {
 	var res []string
 
-	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(fsys, root, func(path string, _ fs.DirEntry, err error) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		if glob.Match(path) {
 			res = append(res, path)
 		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return nil, err
