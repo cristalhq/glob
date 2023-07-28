@@ -2,7 +2,6 @@ package glob
 
 import (
 	"fmt"
-	"path"
 	"regexp"
 	"strings"
 )
@@ -14,16 +13,16 @@ type Glob struct {
 }
 
 // Compile parses a glob pattern and returns, if successful,
-// a Glob object that can be used to match against text.
+// a [Glob] object that can be used to match against text.
 func Compile(pattern string, sep byte) (*Glob, error) {
-	re, err := compile(pattern, sep)
+	re, err := compile(pattern, rune(sep))
 	if err != nil {
 		return nil, err
 	}
 	return &Glob{re: re}, nil
 }
 
-// MustCompile is like Compile but panics if the expression cannot be parsed.
+// MustCompile is like [Compile] but panics if the expression cannot be parsed.
 // It simplifies safe initialization of global variables holding glob patterns.
 func MustCompile(pattern string, sep byte) *Glob {
 	g, err := Compile(pattern, sep)
@@ -43,44 +42,38 @@ func (m *Glob) MatchBytes(b []byte) bool {
 	return m.re.Match(b)
 }
 
-func compile(pattern string, separator byte) (*regexp.Regexp, error) {
-	sep := rune(separator)
-	root := ""
-	globmask := ""
-
-	for _, s := range strings.Split(pattern, string(sep)) {
-		if root == "" && hasSpecial(s) {
-			root = globmask
-		}
-
-		globmask = path.Join(globmask, s)
-	}
-
-	globmask = path.Clean(globmask)
-
-	cc := []rune(globmask)
-	dirmask := ""
-	staticDir := true
+func compile(pattern string, sep rune) (*regexp.Regexp, error) {
+	cc := []rune(pattern)
 	var b strings.Builder
 
 	for i := 0; i < len(cc); i++ {
 		switch c := cc[i]; c {
+		case '?':
+			b.WriteByte('.')
+
 		case '*':
-			staticDir = false
 			if i < len(cc)-2 && cc[i+1] == '*' && cc[i+2] == sep {
 				b.WriteString("(.*/)?")
 				i += 2
 			} else {
 				b.WriteString("[^/]*")
 			}
+
+		// TODO(oleg): support more of this
+		// case '[':
+		// case '{':
+		// case ',':
+		// case '!':
+		// case '-':
+
+		case '\\':
+			b.WriteByte('\\')
+
 		default:
 			if c == sep || isASCII(c) {
-				b.WriteString(string(c))
+				b.WriteRune(c)
 			} else {
-				b.WriteString(fmt.Sprintf("[\\x%02X]", c))
-			}
-			if staticDir {
-				dirmask += string(c)
+				fmt.Fprintf(&b, "[\\x%02X]", c)
 			}
 		}
 	}
@@ -90,11 +83,6 @@ func compile(pattern string, separator byte) (*regexp.Regexp, error) {
 		return nil, err
 	}
 	return re, nil
-}
-
-func hasSpecial(s string) bool {
-	return strings.IndexByte(s, '*') != -1 ||
-		strings.IndexByte(s, '{') != -1
 }
 
 func isASCII(c rune) bool {
