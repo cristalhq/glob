@@ -1,12 +1,37 @@
 package glob_test
 
 import (
+	"context"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/cristalhq/glob"
 )
 
 func Example() {
+	pattern := `**/*co?e*.go`
+	matcher := glob.MustCompile(pattern, os.PathSeparator)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	fsys := os.DirFS(filepath.Join(os.Getenv("GOPATH"), "src"))
+
+	err := glob.Walk(ctx, fsys, ".", matcher, func(path string, d fs.DirEntry, err error) error {
+		// fmt.Println(path)
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+}
+
+func ExampleMatch() {
 	paths := []string{
 		`foo/bar`,
 		`foo/bar/a.go`,

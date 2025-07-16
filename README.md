@@ -15,6 +15,8 @@ TODO
 * Simple API.
 * Dependency-free.
 * Clean and tested code.
+* Support for `**`.
+* Walk & find for `fs.FS`.
 
 See [docs][pkg-url] or [GUIDE.md](GUIDE.md) for more details.
 
@@ -29,7 +31,15 @@ go get github.com/cristalhq/glob
 ## Example
 
 ```go
-TODO
+pattern := `foo/**/*.go`
+matcher := glob.MustCompile(pattern, '/')
+
+ctx, cancel := context.WithCancel(context.Bacg)
+glob.Walk(ctx)
+fmt.Printf("For pattern `%s`:\n", pattern)
+for _, path := range paths {
+	fmt.Printf("%15s %v\n", path, matcher.Match(path))
+}
 ```
 
 See examples: [example_test.go](example_test.go).

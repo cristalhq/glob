@@ -6,25 +6,28 @@ import (
 	"strings"
 )
 
-// Glob is the representation of a compiled glob pattern.
-// A Glob is safe for concurrent use by multiple goroutines.
-type Glob struct {
+// Deprecated: use [Matcher].
+type Glob = Matcher
+
+// Matcher is the representation of a compiled glob pattern.
+// A Matcher is safe for concurrent use by multiple goroutines.
+type Matcher struct {
 	re *regexp.Regexp
 }
 
 // Compile parses a glob pattern and returns, if successful,
-// a [Glob] object that can be used to match against text.
-func Compile(pattern string, sep byte) (*Glob, error) {
-	re, err := compile(pattern, rune(sep))
+// a [Matcher] object that can be used to match against text.
+func Compile(pattern string, sep rune) (*Matcher, error) {
+	re, err := compile(pattern, sep)
 	if err != nil {
 		return nil, err
 	}
-	return &Glob{re: re}, nil
+	return &Matcher{re: re}, nil
 }
 
 // MustCompile is like [Compile] but panics if the expression cannot be parsed.
 // It simplifies safe initialization of global variables holding glob patterns.
-func MustCompile(pattern string, sep byte) *Glob {
+func MustCompile(pattern string, sep rune) *Matcher {
 	g, err := Compile(pattern, sep)
 	if err != nil {
 		panic(err)
@@ -33,12 +36,12 @@ func MustCompile(pattern string, sep byte) *Glob {
 }
 
 // Match reports whether the string matches the glob pattern.
-func (m *Glob) Match(s string) bool {
+func (m *Matcher) Match(s string) bool {
 	return m.re.MatchString(s)
 }
 
 // Match reports whether the byte slice matches the glob pattern.
-func (m *Glob) MatchBytes(b []byte) bool {
+func (m *Matcher) MatchBytes(b []byte) bool {
 	return m.re.Match(b)
 }
 
