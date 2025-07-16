@@ -8,15 +8,17 @@ import (
 func BenchmarkCompile(b *testing.B) {
 	pattern := `foo/**/*.go`
 
+	var count int64
 	for i := 0; i < b.N; i++ {
 		g, err := Compile(pattern, '/')
 		if err != nil {
 			b.Fatal(err)
 		}
-		if g == nil {
-			b.Fatal("have nil glob")
+		if g != nil {
+			count++
 		}
 	}
+	sink(b, count)
 }
 
 func BenchmarkMatch(b *testing.B) {
@@ -25,6 +27,7 @@ func BenchmarkMatch(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	b.ResetTimer()
 
 	var count int64
 	for i := 0; i < b.N; i++ {
@@ -33,10 +36,11 @@ func BenchmarkMatch(b *testing.B) {
 			count++
 		}
 	}
+	sink(b, count)
 }
 
-func sink(v int64) {
+func sink(tb testing.TB, v int64) {
 	if rand.Float32() > 1 {
-		panic(v)
+		tb.Fatal(v)
 	}
 }
